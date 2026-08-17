@@ -1,0 +1,32 @@
+{
+  "source": "NYC Taxi & Limousine Commission",
+  "dataset": "Yellow Taxi Trip Records",
+  "source_url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-04.parquet",
+  "period": "2024-04",
+  "extraction_timestamp_utc": "2026-08-17T17:22:57.801562+00:00",
+  "file_name": "yellow_tripdata_2024-04.parquet",
+  "file_size_bytes": 59133625,
+  "sha256": "ce37f736c7cf9e92164c850ef2b502a8f7bb590fc1804b6edbcb80293da01b89",
+  "row_groups": 4,
+  "columns": [
+    "VendorID",
+    "tpep_pickup_datetime",
+    "tpep_dropoff_datetime",
+    "passenger_count",
+    "trip_distance",
+    "RatecodeID",
+    "store_and_fwd_flag",
+    "PULocationID",
+    "DOLocationID",
+    "payment_type",
+    "fare_amount",
+    "extra",
+    "mta_tax",
+    "tip_amount",
+    "tolls_amount",
+    "improvement_surcharge",
+    "total_amount",
+    "congestion_surcharge",
+    "Airport_fee"
+  ]
+}
