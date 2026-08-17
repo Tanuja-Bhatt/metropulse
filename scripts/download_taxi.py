@@ -41,6 +41,22 @@ def download_taxi_month(month: str) -> None:
 
     parquet_file = pq.ParquetFile(destination)
 
+    schema = parquet_file.schema_arrow
+
+    schema_definition = [
+        {
+            "name": field.name,
+            "type": str(field.type),
+        }
+        for field in schema
+    ]
+
+    schema_json = str(schema_definition).encode("utf-8")
+
+    schema_fingerprint = __import__("hashlib").sha256(
+        schema_json
+    ).hexdigest()
+
     metadata = {
         "source": "NYC Taxi & Limousine Commission",
         "dataset": "Yellow Taxi Trip Records",
@@ -50,7 +66,9 @@ def download_taxi_month(month: str) -> None:
         "file_name": filename,
         "file_size_bytes": destination.stat().st_size,
         "sha256": sha256_file(destination),
+        "row_count": parquet_file.metadata.num_rows,
         "row_groups": parquet_file.num_row_groups,
+        "schema_fingerprint": schema_fingerprint,
         "columns": parquet_file.schema_arrow.names,
     }
 
