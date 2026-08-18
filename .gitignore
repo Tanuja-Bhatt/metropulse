@@ -3,3 +3,5 @@ data/*.duckdb
 .venv/
 __pycache__/
 .env
+data/processed/
+data/metropulse.duckdb
