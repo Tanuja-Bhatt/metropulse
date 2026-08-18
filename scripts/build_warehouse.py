@@ -393,6 +393,72 @@ def validate_hourly_sources(con):
         "fully reconcile with hourly spine."
     )
 
+def build_hourly_taxi_demand(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING HOURLY TAXI DEMAND")
+    print("=" * 80)
+
+    print("\n[1/1] Creating intermediate.hourly_taxi_demand")
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "intermediate"
+        / "hourly_taxi_demand.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.hourly_taxi_demand
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Hourly OD rows: {row_count:,}"
+    )
+
+def validate_hourly_taxi_demand(con):
+
+    print("\n")
+    print("=" * 80)
+    print("HOURLY TAXI DEMAND VALIDATION")
+    print("=" * 80)
+
+    source_trips = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.taxi_trips_clean
+    """).fetchone()[0]
+
+    aggregated_trips = con.execute("""
+        SELECT SUM(trip_count)
+        FROM intermediate.hourly_taxi_demand
+    """).fetchone()[0]
+
+    print(
+        f"Source trips:       {source_trips:,}"
+    )
+
+    print(
+        f"Aggregated trips:   {aggregated_trips:,}"
+    )
+
+    if source_trips != aggregated_trips:
+        raise RuntimeError(
+            "Taxi aggregation reconciliation failed."
+        )
+
+    print(
+        "\n[SUCCESS] Taxi trip count reconciles "
+        "through hourly OD aggregation."
+    )
+
 def main():
 
     print("=" * 80)
@@ -409,6 +475,8 @@ def main():
         validate_intermediate(con)
         build_hourly_spine(con)
         validate_hourly_sources(con)
+        build_hourly_taxi_demand(con)
+        validate_hourly_taxi_demand(con)
 
         print("\n")
         print("=" * 80)
