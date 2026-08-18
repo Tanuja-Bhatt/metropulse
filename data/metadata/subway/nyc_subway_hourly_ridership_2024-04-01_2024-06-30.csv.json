@@ -1,0 +1,20 @@
+{
+  "source": "Metropolitan Transportation Authority",
+  "dataset": "MTA Subway Hourly Ridership: 2020-2024",
+  "dataset_id": "wujg-7c2s",
+  "source_url": "https://data.ny.gov/resource/wujg-7c2s.json",
+  "start_timestamp": "2024-04-01T00:00:00",
+  "end_timestamp_exclusive": "2024-07-01T00:00:00",
+  "filter": "transit_mode = subway",
+  "aggregation": "GROUP BY transit_timestamp; SUM(ridership), SUM(transfers)",
+  "extraction_timestamp_utc": "2026-08-18T06:35:10.247912+00:00",
+  "file_name": "nyc_subway_hourly_ridership_2024-04-01_2024-06-30.csv",
+  "file_size_bytes": 79642,
+  "sha256": "370ebef293bed78744ae8d0bd90811e4ca18aa70e6ee01e0c4b7e3092355cfa4",
+  "row_count": 2184,
+  "expected_hourly_rows": 2184,
+  "min_timestamp": "2024-04-01 00:00:00",
+  "max_timestamp": "2024-06-30 23:00:00",
+  "total_ridership": 304647461.0,
+  "total_transfers": 12234166.0
+}
