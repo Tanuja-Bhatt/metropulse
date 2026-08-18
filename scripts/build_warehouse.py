@@ -170,6 +170,71 @@ def build_staging(con):
 
     print(f"[SUCCESS] Subway rows: {subway_count:,}")
 
+def build_intermediate(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING INTERMEDIATE LAYER")
+    print("=" * 80)
+
+    print("\n[1/1] Creating intermediate.taxi_trips_clean")
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "intermediate"
+        / "taxi_trips_clean.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.taxi_trips_clean
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Clean taxi rows: {row_count:,}"
+    )
+
+def validate_intermediate(con):
+
+    print("\n")
+    print("=" * 80)
+    print("INTERMEDIATE VALIDATION")
+    print("=" * 80)
+
+    taxi_rows = con.execute("""
+        SELECT COUNT(*)
+        FROM staging.taxi_trips
+    """).fetchone()[0]
+
+    clean_rows = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.taxi_trips_clean
+    """).fetchone()[0]
+
+    print(
+        f"staging taxi rows:       {taxi_rows:,}"
+    )
+
+    print(
+        f"intermediate taxi rows:  {clean_rows:,}"
+    )
+
+    if taxi_rows != clean_rows:
+        raise RuntimeError(
+            "Intermediate row count does not "
+            "match staging row count."
+        )
+
+    print(
+        "\n[SUCCESS] Intermediate row count reconciles."
+    )
 
 def validate_staging(con):
 
@@ -233,6 +298,8 @@ def main():
         create_schemas(con)
         build_staging(con)
         validate_staging(con)
+        build_intermediate(con)
+        validate_intermediate(con)
 
         print("\n")
         print("=" * 80)
