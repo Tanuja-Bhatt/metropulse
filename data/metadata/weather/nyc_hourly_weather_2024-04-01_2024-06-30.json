@@ -1,0 +1,28 @@
+{
+  "source": "Open-Meteo Historical Weather API",
+  "source_url": "https://archive-api.open-meteo.com/v1/archive",
+  "dataset": "NYC Hourly Historical Weather",
+  "start_date": "2024-04-01",
+  "end_date": "2024-06-30",
+  "latitude": 40.7128,
+  "longitude": -74.006,
+  "timezone": "America/New_York",
+  "hourly_variables": [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "precipitation",
+    "rain",
+    "snowfall",
+    "weather_code",
+    "wind_speed_10m",
+    "cloud_cover"
+  ],
+  "extraction_timestamp_utc": "2026-08-18T06:27:12.147804+00:00",
+  "file_name": "nyc_hourly_weather_2024-04-01_2024-06-30.csv",
+  "file_size_bytes": 110981,
+  "sha256": "f725ffe14c8589caae25d2b8712e8a54624b50662877725b0bd5792dfcc0a2ad",
+  "row_count": 2184,
+  "expected_hourly_rows": 2184,
+  "min_timestamp": "2024-04-01 00:00:00",
+  "max_timestamp": "2024-06-30 23:00:00"
+}
