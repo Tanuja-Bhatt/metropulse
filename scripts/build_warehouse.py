@@ -286,6 +286,113 @@ def validate_staging(con):
     print("\n[SUCCESS] All staging row counts reconcile.")
 
 
+def build_hourly_spine(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING HOURLY SPINE")
+    print("=" * 80)
+
+    print("\n[1/1] Creating intermediate.hourly_spine")
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "intermediate"
+        / "hourly_spine.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.hourly_spine
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Hourly spine rows: {row_count:,}"
+    )
+
+    if row_count != 2184:
+        raise RuntimeError(
+            f"Hourly spine expected 2,184 rows "
+            f"but found {row_count:,}"
+        )
+
+def validate_hourly_sources(con):
+
+    print("\n")
+    print("=" * 80)
+    print("HOURLY SOURCE VALIDATION")
+    print("=" * 80)
+
+    weather_missing = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.hourly_spine h
+        LEFT JOIN staging.weather_hourly w
+            ON h.timestamp_hour = w.timestamp_hour
+        WHERE w.timestamp_hour IS NULL
+    """).fetchone()[0]
+
+    subway_missing = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.hourly_spine h
+        LEFT JOIN staging.subway_hourly s
+            ON h.timestamp_hour = s.timestamp_hour
+        WHERE s.timestamp_hour IS NULL
+    """).fetchone()[0]
+
+    weather_extra = con.execute("""
+        SELECT COUNT(*)
+        FROM staging.weather_hourly w
+        LEFT JOIN intermediate.hourly_spine h
+            ON w.timestamp_hour = h.timestamp_hour
+        WHERE h.timestamp_hour IS NULL
+    """).fetchone()[0]
+
+    subway_extra = con.execute("""
+        SELECT COUNT(*)
+        FROM staging.subway_hourly s
+        LEFT JOIN intermediate.hourly_spine h
+            ON s.timestamp_hour = h.timestamp_hour
+        WHERE h.timestamp_hour IS NULL
+    """).fetchone()[0]
+
+    print(
+        f"Missing weather hours: {weather_missing}"
+    )
+
+    print(
+        f"Missing subway hours:  {subway_missing}"
+    )
+
+    print(
+        f"Extra weather hours:   {weather_extra}"
+    )
+
+    print(
+        f"Extra subway hours:    {subway_extra}"
+    )
+
+    if any([
+        weather_missing,
+        subway_missing,
+        weather_extra,
+        subway_extra
+    ]):
+        raise RuntimeError(
+            "Hourly source reconciliation failed."
+        )
+
+    print(
+        "\n[SUCCESS] Weather and subway "
+        "fully reconcile with hourly spine."
+    )
+
 def main():
 
     print("=" * 80)
@@ -300,6 +407,8 @@ def main():
         validate_staging(con)
         build_intermediate(con)
         validate_intermediate(con)
+        build_hourly_spine(con)
+        validate_hourly_sources(con)
 
         print("\n")
         print("=" * 80)
