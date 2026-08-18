@@ -1,0 +1,18 @@
+{
+  "source": "NYC Taxi & Limousine Commission",
+  "dataset": "Taxi Zone Shapefile",
+  "source_url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zones.zip",
+  "extraction_timestamp_utc": "2026-08-17T18:55:43.795171+00:00",
+  "file_name": "taxi_zones.zip",
+  "file_size_bytes": 1022574,
+  "sha256": "f6d711917bb4340f8f644d5366c51665489eb2d426dd1a4a55677721ae5adf17",
+  "archive_member_count": 6,
+  "archive_members": [
+    "taxi_zones/",
+    "taxi_zones/taxi_zones.cpg",
+    "taxi_zones/taxi_zones.dbf",
+    "taxi_zones/taxi_zones.prj",
+    "taxi_zones/taxi_zones.shp",
+    "taxi_zones/taxi_zones.shx"
+  ]
+}
