@@ -703,6 +703,97 @@ def validate_hourly_mobility(con):
         "[SUCCESS] All taxi zones are mapped."
     )
 
+def build_hourly_mobility_summary(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING HOURLY MOBILITY SUMMARY")
+    print("=" * 80)
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "marts"
+        / "hourly_mobility_summary.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM marts.hourly_mobility_summary
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Hourly summary rows: "
+        f"{row_count:,}"
+    )
+
+    if row_count != 2184:
+        raise RuntimeError(
+            f"Hourly summary expected 2,184 rows "
+            f"but found {row_count:,}"
+        )
+
+def validate_hourly_mobility_summary(con):
+
+    print("\n")
+    print("=" * 80)
+    print("HOURLY MOBILITY SUMMARY VALIDATION")
+    print("=" * 80)
+
+    result = con.execute("""
+        SELECT
+            COUNT(*) AS rows,
+            COUNT(DISTINCT pickup_hour) AS unique_hours,
+            SUM(taxi_trip_count) AS taxi_trips
+        FROM marts.hourly_mobility_summary
+    """).fetchone()
+
+    rows = result[0]
+    unique_hours = result[1]
+    taxi_trips = result[2]
+
+    expected_trips = con.execute("""
+        SELECT SUM(trip_count)
+        FROM marts.hourly_mobility
+    """).fetchone()[0]
+
+    print(f"Rows:               {rows:,}")
+    print(f"Unique hours:       {unique_hours:,}")
+    print(f"Taxi trips:         {taxi_trips:,}")
+    print(f"Expected trips:     {expected_trips:,}")
+
+    if rows != 2184:
+        raise RuntimeError(
+            f"Hourly summary expected 2,184 rows "
+            f"but found {rows:,}"
+        )
+
+    if unique_hours != 2184:
+        raise RuntimeError(
+            f"Hourly summary expected 2,184 unique hours "
+            f"but found {unique_hours:,}"
+        )
+
+    if taxi_trips != expected_trips:
+        raise RuntimeError(
+            "Hourly summary changed taxi trip totals."
+        )
+
+    print(
+        "\n[SUCCESS] Hourly summary contains "
+        "one row per canonical hour."
+    )
+
+    print(
+        "[SUCCESS] Hourly summary preserves "
+        "taxi trip totals."
+    )
 
 def main():
 
@@ -726,6 +817,8 @@ def main():
         validate_hourly_context(con)
         build_hourly_mobility(con)
         validate_hourly_mobility(con)
+        build_hourly_mobility_summary(con)
+        validate_hourly_mobility_summary(con)
 
         print("\n")
         print("=" * 80)
