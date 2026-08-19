@@ -53,7 +53,8 @@ def load_data(con):
             subway_transfers,
             hour_of_day,
             is_weekend,
-            month_start
+            month_start,
+            EXTRACT(DOW FROM pickup_hour) AS day_of_week
         FROM marts.hourly_mobility_summary
         ORDER BY pickup_hour
     """).df()
@@ -74,22 +75,62 @@ def prepare_features(df):
 
     df = df.copy()
 
+    # -------------------------------------------------------------------------
+    # Rain indicator
+    # -------------------------------------------------------------------------
+
     df["rain_flag"] = (
         df["precipitation"] > 0
     ).astype(int)
+
+    # -------------------------------------------------------------------------
+    # Weekend indicator
+    # -------------------------------------------------------------------------
 
     df["is_weekend"] = (
         df["is_weekend"].astype(int)
     )
 
-    # Treat hour-of-day as categorical.
-    # We deliberately do NOT treat 23 -> 00 as a linear jump.
+    # -------------------------------------------------------------------------
+    # Day of week
+    #
+    # DuckDB EXTRACT(DOW):
+    # 0 = Sunday
+    # 1 = Monday
+    # ...
+    # 6 = Saturday
+    #
+    # We treat day of week as categorical rather than numeric.
+    # -------------------------------------------------------------------------
+
+    df["day_of_week"] = (
+        df["day_of_week"].astype(int)
+    )
+
+    day_dummies = pd.get_dummies(
+        df["day_of_week"],
+        prefix="day",
+        drop_first=True,
+        dtype=float,
+    )
+
+    # -------------------------------------------------------------------------
+    # Hour of day
+    #
+    # Treat hour as categorical.
+    # This avoids imposing a false linear relationship between 23:00 and 00:00.
+    # -------------------------------------------------------------------------
+
     hour_dummies = pd.get_dummies(
         df["hour_of_day"],
         prefix="hour",
         drop_first=True,
         dtype=float,
     )
+
+    # -------------------------------------------------------------------------
+    # Month
+    # -------------------------------------------------------------------------
 
     month_dummies = pd.get_dummies(
         df["month_start"],
@@ -98,9 +139,14 @@ def prepare_features(df):
         dtype=float,
     )
 
+    # -------------------------------------------------------------------------
+    # Combine engineered features
+    # -------------------------------------------------------------------------
+
     df = pd.concat(
         [
             df,
+            day_dummies,
             hour_dummies,
             month_dummies,
         ],
@@ -151,6 +197,7 @@ def validate_data(df):
         "cloud_cover",
         "subway_ridership",
         "subway_transfers",
+        "day_of_week",
     ]
 
     missing = [
@@ -168,6 +215,7 @@ def validate_data(df):
     print(
         "\n[SUCCESS] Regression dataset validated."
     )
+
 
 # =============================================================================
 # DESCRIPTIVE ANALYSIS
@@ -332,22 +380,58 @@ def fit_model(df, predictor_columns):
     y = df["taxi_trip_count"].astype(float)
 
     model = sm.OLS(
-    y,
-    X,
-).fit(
-    cov_type="HAC",
-    cov_kwds={
-        "maxlags": 24,
-    },
-)
+        y,
+        X,
+    ).fit(
+        cov_type="HAC",
+        cov_kwds={
+            "maxlags": 24,
+        },
+    )
 
     return model
+
+
+# =============================================================================
+# HELPER — TEMPORAL DUMMY COLUMNS
+# =============================================================================
+
+def get_temporal_columns(df):
+
+    day_columns = [
+        column
+        for column in df.columns
+        if column.startswith("day_")
+        and column != "day_of_week"
+    ]
+
+    hour_columns = [
+        column
+        for column in df.columns
+        if column.startswith("hour_")
+        and column != "hour_of_day"
+    ]
+
+    month_columns = [
+        column
+        for column in df.columns
+        if column.startswith("month_")
+        and column != "month_start"
+    ]
+
+    return (
+        day_columns,
+        hour_columns,
+        month_columns,
+    )
+
 
 # =============================================================================
 # MODEL 1 — RAW SUBWAY ASSOCIATION
 # =============================================================================
 
 def model_raw_subway(df):
+
     print("\n")
     print("=" * 80)
     print("2. MODEL 1 — RAW SUBWAY ASSOCIATION")
@@ -378,25 +462,15 @@ def model_subway_time_controls(df):
     print("3. MODEL 2 — SUBWAY + TEMPORAL CONTROLS")
     print("=" * 80)
 
-    hour_columns = [
-    column
-    for column in df.columns
-    if column.startswith("hour_")
-    and column != "hour_of_day"
-]
-
-    month_columns = [
-    column
-    for column in df.columns
-    if column.startswith("month_")
-    and column != "month_start"
-]
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(df)
+    )
 
     predictors = [
         "subway_ridership",
-        "is_weekend",
     ]
 
+    predictors += day_columns
     predictors += hour_columns
     predictors += month_columns
 
@@ -423,19 +497,9 @@ def model_full(df):
     print("4. MODEL 3 — WEATHER + SUBWAY + TEMPORAL CONTROLS")
     print("=" * 80)
 
-    hour_columns = [
-    column
-    for column in df.columns
-    if column.startswith("hour_")
-    and column != "hour_of_day"
-]
-
-    month_columns = [
-    column
-    for column in df.columns
-    if column.startswith("month_")
-    and column != "month_start"
-]
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(df)
+    )
 
     predictors = [
         "subway_ridership",
@@ -444,9 +508,9 @@ def model_full(df):
         "precipitation",
         "wind_speed_10m",
         "cloud_cover",
-        "is_weekend",
     ]
 
+    predictors += day_columns
     predictors += hour_columns
     predictors += month_columns
 
@@ -473,19 +537,9 @@ def model_rain_flag(df):
     print("5. MODEL 4 — RAIN OCCURRENCE + CONTROLS")
     print("=" * 80)
 
-    hour_columns = [
-    column
-    for column in df.columns
-    if column.startswith("hour_")
-    and column != "hour_of_day"
-]
-
-    month_columns = [
-    column
-    for column in df.columns
-    if column.startswith("month_")
-    and column != "month_start"
-]
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(df)
+    )
 
     predictors = [
         "rain_flag",
@@ -494,9 +548,9 @@ def model_rain_flag(df):
         "relative_humidity_2m",
         "wind_speed_10m",
         "cloud_cover",
-        "is_weekend",
     ]
 
+    predictors += day_columns
     predictors += hour_columns
     predictors += month_columns
 
@@ -510,6 +564,7 @@ def model_rain_flag(df):
     )
 
     return model
+
 
 # =============================================================================
 # LAGGED SUBWAY ANALYSIS
@@ -545,28 +600,18 @@ def run_lagged_subway_analysis(df):
         ]
     )
 
-    hour_columns = [
-        column
-        for column in analysis_df.columns
-        if column.startswith("hour_")
-        and column != "hour_of_day"
-    ]
-
-    month_columns = [
-        column
-        for column in analysis_df.columns
-        if column.startswith("month_")
-        and column != "month_start"
-    ]
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(analysis_df)
+    )
 
     predictors = [
         "subway_ridership",
         "subway_ridership_lag_1",
         "subway_ridership_lag_2",
         "subway_ridership_lag_3",
-        "is_weekend",
     ]
 
+    predictors += day_columns
     predictors += hour_columns
     predictors += month_columns
 
@@ -649,40 +694,356 @@ def run_lagged_subway_analysis(df):
 
     return model
 
+# =============================================================================
+# TAXI DEMAND LAG ANALYSIS
+# =============================================================================
+
+def run_taxi_demand_lag_analysis(df):
+
+    print("\n")
+    print("=" * 80)
+    print("TAXI DEMAND LAG ANALYSIS")
+    print("=" * 80)
+
+    analysis_df = df.copy()
+
+    analysis_df = analysis_df.sort_values(
+        "pickup_hour"
+    ).reset_index(drop=True)
+
+    # -------------------------------------------------------------------------
+    # Create historical taxi-demand variables
+    #
+    # lag_1   = previous hour
+    # lag_2   = two hours earlier
+    # lag_24  = same hour previous day
+    # lag_168 = same hour previous week
+    # -------------------------------------------------------------------------
+
+    analysis_df["taxi_trip_count_lag_1"] = (
+        analysis_df["taxi_trip_count"].shift(1)
+    )
+
+    analysis_df["taxi_trip_count_lag_2"] = (
+        analysis_df["taxi_trip_count"].shift(2)
+    )
+
+    analysis_df["taxi_trip_count_lag_24"] = (
+        analysis_df["taxi_trip_count"].shift(24)
+    )
+
+    analysis_df["taxi_trip_count_lag_168"] = (
+        analysis_df["taxi_trip_count"].shift(168)
+    )
+
+    # -------------------------------------------------------------------------
+    # Temporal controls
+    # -------------------------------------------------------------------------
+
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(analysis_df)
+    )
+
+    # -------------------------------------------------------------------------
+    # Model A
+    #
+    # Current subway + weather + temporal controls
+    #
+    # This is the baseline against which the lagged models are compared.
+    # -------------------------------------------------------------------------
+
+    baseline_predictors = [
+        "subway_ridership",
+        "rain_flag",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "wind_speed_10m",
+        "cloud_cover",
+    ]
+
+    baseline_predictors += day_columns
+    baseline_predictors += hour_columns
+    baseline_predictors += month_columns
+
+    baseline_df = analysis_df.dropna(
+        subset=baseline_predictors
+    ).copy()
+
+    X_baseline = baseline_df[
+        baseline_predictors
+    ].astype(float)
+
+    X_baseline = sm.add_constant(
+        X_baseline,
+        has_constant="add",
+    )
+
+    y_baseline = baseline_df[
+        "taxi_trip_count"
+    ].astype(float)
+
+    baseline_model = sm.OLS(
+        y_baseline,
+        X_baseline,
+    ).fit(
+        cov_type="HAC",
+        cov_kwds={
+            "maxlags": 24,
+        },
+    )
+
+    # -------------------------------------------------------------------------
+    # Model B
+    #
+    # Add short-term demand history:
+    # lag 1 + lag 2
+    # -------------------------------------------------------------------------
+
+    short_lag_predictors = (
+        baseline_predictors
+        + [
+            "taxi_trip_count_lag_1",
+            "taxi_trip_count_lag_2",
+        ]
+    )
+
+    short_lag_df = analysis_df.dropna(
+        subset=short_lag_predictors
+    ).copy()
+
+    X_short = short_lag_df[
+        short_lag_predictors
+    ].astype(float)
+
+    X_short = sm.add_constant(
+        X_short,
+        has_constant="add",
+    )
+
+    y_short = short_lag_df[
+        "taxi_trip_count"
+    ].astype(float)
+
+    short_lag_model = sm.OLS(
+        y_short,
+        X_short,
+    ).fit(
+        cov_type="HAC",
+        cov_kwds={
+            "maxlags": 24,
+        },
+    )
+
+    # -------------------------------------------------------------------------
+    # Model C
+    #
+    # Add short-term, daily, and weekly demand history.
+    # -------------------------------------------------------------------------
+
+    full_lag_predictors = (
+        baseline_predictors
+        + [
+            "taxi_trip_count_lag_1",
+            "taxi_trip_count_lag_2",
+            "taxi_trip_count_lag_24",
+            "taxi_trip_count_lag_168",
+        ]
+    )
+
+    full_lag_df = analysis_df.dropna(
+        subset=full_lag_predictors
+    ).copy()
+
+    X_full = full_lag_df[
+        full_lag_predictors
+    ].astype(float)
+
+    X_full = sm.add_constant(
+        X_full,
+        has_constant="add",
+    )
+
+    y_full = full_lag_df[
+        "taxi_trip_count"
+    ].astype(float)
+
+    full_lag_model = sm.OLS(
+        y_full,
+        X_full,
+    ).fit(
+        cov_type="HAC",
+        cov_kwds={
+            "maxlags": 168,
+        },
+    )
+
+    # -------------------------------------------------------------------------
+    # Model comparison
+    # -------------------------------------------------------------------------
+
+    print("\n")
+    print(
+        "MODEL COMPARISON"
+    )
+
+    comparison = pd.DataFrame(
+        [
+            {
+                "model": "Baseline",
+                "observations": len(baseline_df),
+                "r_squared": baseline_model.rsquared,
+                "adjusted_r_squared": baseline_model.rsquared_adj,
+                "aic": baseline_model.aic,
+                "bic": baseline_model.bic,
+            },
+            {
+                "model": "Short lags (1,2)",
+                "observations": len(short_lag_df),
+                "r_squared": short_lag_model.rsquared,
+                "adjusted_r_squared": short_lag_model.rsquared_adj,
+                "aic": short_lag_model.aic,
+                "bic": short_lag_model.bic,
+            },
+            {
+                "model": "Full lags (1,2,24,168)",
+                "observations": len(full_lag_df),
+                "r_squared": full_lag_model.rsquared,
+                "adjusted_r_squared": full_lag_model.rsquared_adj,
+                "aic": full_lag_model.aic,
+                "bic": full_lag_model.bic,
+            },
+        ]
+    )
+
+    print(
+        comparison.round(4).to_string(
+            index=False
+        )
+    )
+
+    # -------------------------------------------------------------------------
+    # Lag coefficients
+    # -------------------------------------------------------------------------
+
+    print("\n")
+    print(
+        "LAGGED DEMAND COEFFICIENTS"
+    )
+
+    lag_columns = [
+        "taxi_trip_count_lag_1",
+        "taxi_trip_count_lag_2",
+        "taxi_trip_count_lag_24",
+        "taxi_trip_count_lag_168",
+    ]
+
+    available_lags = [
+        column
+        for column in lag_columns
+        if column in full_lag_model.params.index
+    ]
+
+    lag_result = pd.DataFrame(
+        {
+            "coefficient": full_lag_model.params[
+                available_lags
+            ],
+            "p_value": full_lag_model.pvalues[
+                available_lags
+            ],
+            "ci_lower": full_lag_model.conf_int().loc[
+                available_lags,
+                0,
+            ],
+            "ci_upper": full_lag_model.conf_int().loc[
+                available_lags,
+                1,
+            ],
+        }
+    )
+
+    print(
+        lag_result.round(6).to_string()
+    )
+
+    # -------------------------------------------------------------------------
+    # Current subway coefficient stability
+    # -------------------------------------------------------------------------
+
+    print("\n")
+    print(
+        "SUBWAY COEFFICIENT STABILITY"
+    )
+
+    subway_result = pd.DataFrame(
+        {
+            "model": [
+                "Baseline",
+                "Short lags (1,2)",
+                "Full lags (1,2,24,168)",
+            ],
+            "subway_coefficient": [
+                baseline_model.params[
+                    "subway_ridership"
+                ],
+                short_lag_model.params[
+                    "subway_ridership"
+                ],
+                full_lag_model.params[
+                    "subway_ridership"
+                ],
+            ],
+            "p_value": [
+                baseline_model.pvalues[
+                    "subway_ridership"
+                ],
+                short_lag_model.pvalues[
+                    "subway_ridership"
+                ],
+                full_lag_model.pvalues[
+                    "subway_ridership"
+                ],
+            ],
+        }
+    )
+
+    print(
+        subway_result.round(6).to_string(
+            index=False
+        )
+    )
+
+    print("\n")
+    print(
+        "[SUCCESS] Taxi demand lag analysis complete."
+    )
+
+    return {
+        "baseline": baseline_model,
+        "short_lag": short_lag_model,
+        "full_lag": full_lag_model,
+    }
+
 # ==============================================================================
 # HAC SENSITIVITY ANALYSIS
 # ==============================================================================
 
 def run_hac_sensitivity(df):
+
     """
     Test whether the subway coefficient remains stable
     across different HAC lag specifications.
     """
 
-    print("\n")
-    print("=" * 80)
-    print("HAC SENSITIVITY ANALYSIS")
-    print("=" * 80)
+    day_columns, hour_columns, month_columns = (
+        get_temporal_columns(df)
+    )
 
     predictors = [
         "subway_ridership",
-        "is_weekend",
     ]
 
-    hour_columns = [
-        column
-        for column in df.columns
-        if column.startswith("hour_")
-        and column != "hour_of_day"
-    ]
-
-    month_columns = [
-        column
-        for column in df.columns
-        if column.startswith("month_")
-        and column != "month_start"
-    ]
-
+    predictors += day_columns
     predictors += hour_columns
     predictors += month_columns
 
@@ -699,8 +1060,19 @@ def run_hac_sensitivity(df):
 
     lag_values = [6, 12, 24, 48, 168]
 
-    print("\nModel: Subway + temporal controls")
-    print("Testing HAC lag specifications:")
+    print("\n")
+    print("=" * 80)
+    print("HAC SENSITIVITY ANALYSIS")
+    print("=" * 80)
+
+    print(
+        "\nModel: Subway + day/hour/month controls"
+    )
+
+    print(
+        "Testing HAC lag specifications:"
+    )
+
     print()
 
     for lag in lag_values:
@@ -715,9 +1087,17 @@ def run_hac_sensitivity(df):
             },
         )
 
-        coefficient = model.params["subway_ridership"]
-        p_value = model.pvalues["subway_ridership"]
-        ci = model.conf_int().loc["subway_ridership"]
+        coefficient = model.params[
+            "subway_ridership"
+        ]
+
+        p_value = model.pvalues[
+            "subway_ridership"
+        ]
+
+        ci = model.conf_int().loc[
+            "subway_ridership"
+        ]
 
         print(
             f"HAC lag {lag:>3}: "
@@ -727,7 +1107,11 @@ def run_hac_sensitivity(df):
         )
 
     print()
-    print("[SUCCESS] HAC sensitivity analysis complete.")
+
+    print(
+        "[SUCCESS] HAC sensitivity analysis complete."
+    )
+
 
 # =============================================================================
 # MODEL COMPARISON
@@ -790,7 +1174,6 @@ def print_key_coefficients(models):
                 "relative_humidity_2m",
                 "wind_speed_10m",
                 "cloud_cover",
-                "is_weekend",
             ]
             if column in model.params.index
         ]
@@ -804,10 +1187,12 @@ def print_key_coefficients(models):
                     interesting
                 ],
                 "ci_lower": model.conf_int().loc[
-                    interesting, 0
+                    interesting,
+                    0
                 ],
                 "ci_upper": model.conf_int().loc[
-                    interesting, 1
+                    interesting,
+                    1
                 ],
             }
         )
@@ -888,6 +1273,16 @@ def main():
 
         df = prepare_features(df)
 
+        # Verify categorical temporal features before modeling.
+        print(
+            "\nDay-of-week dummy columns:",
+            [
+                column
+                for column in df.columns
+                if column.startswith("day_")
+            ],
+        )
+
         analyze_demand_distribution(df)
 
         analyze_hourly_pattern(df)
@@ -913,18 +1308,21 @@ def main():
         )
 
         run_lagged_subway_analysis(
-    df
-)
+            df
+        )
 
-        run_hac_sensitivity(
-    df
+        run_taxi_demand_lag_analysis(
+           df
 )
+        run_hac_sensitivity(
+            df
+        )
 
         models = {
             "Model 1 — Raw subway": model_1,
-            "Model 2 — Subway + time": model_2,
-            "Model 3 — Full": model_3,
-            "Model 4 — Rain flag": model_4,
+            "Model 2 — Subway + day/hour/month": model_2,
+            "Model 3 — Full + day/hour/month": model_3,
+            "Model 4 — Rain flag + day/hour/month": model_4,
         }
 
         compare_models(
