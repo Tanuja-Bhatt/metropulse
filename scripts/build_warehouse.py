@@ -459,6 +459,251 @@ def validate_hourly_taxi_demand(con):
         "through hourly OD aggregation."
     )
 
+def build_hourly_context(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING HOURLY CONTEXT")
+    print("=" * 80)
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "intermediate"
+        / "hourly_context.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM intermediate.hourly_context
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Hourly context rows: {row_count:,}"
+    )
+
+    if row_count != 2184:
+        raise RuntimeError(
+            f"Hourly context expected 2,184 rows "
+            f"but found {row_count:,}"
+        )
+
+def validate_hourly_context(con):
+
+    print("\n")
+    print("=" * 80)
+    print("HOURLY CONTEXT VALIDATION")
+    print("=" * 80)
+
+    result = con.execute("""
+        SELECT
+            COUNT(*) AS rows,
+            COUNT(DISTINCT timestamp_hour) AS unique_hours,
+
+            COUNT(*) FILTER (
+                WHERE temperature_2m IS NULL
+            ) AS missing_weather,
+
+            COUNT(*) FILTER (
+                WHERE total_ridership IS NULL
+            ) AS missing_subway
+
+        FROM intermediate.hourly_context
+    """).fetchone()
+
+    rows = result[0]
+    unique_hours = result[1]
+    missing_weather = result[2]
+    missing_subway = result[3]
+
+    print(f"Rows:              {rows:,}")
+    print(f"Unique hours:      {unique_hours:,}")
+    print(f"Missing weather:   {missing_weather:,}")
+    print(f"Missing subway:    {missing_subway:,}")
+
+    if rows != 2184:
+        raise RuntimeError(
+            "Hourly context row count failed."
+        )
+
+    if unique_hours != 2184:
+        raise RuntimeError(
+            "Hourly context uniqueness failed."
+        )
+
+    if missing_weather != 0:
+        raise RuntimeError(
+            "Missing weather values detected."
+        )
+
+    if missing_subway != 0:
+        raise RuntimeError(
+            "Missing subway values detected."
+        )
+
+    print(
+        "\n[SUCCESS] Hourly context is one-to-one "
+        "with the canonical hourly spine."
+    )
+
+def build_hourly_mobility(con):
+
+    print("\n")
+    print("=" * 80)
+    print("BUILDING HOURLY MOBILITY MART")
+    print("=" * 80)
+
+    sql_path = (
+        PROJECT_ROOT
+        / "sql"
+        / "marts"
+        / "hourly_mobility.sql"
+    )
+
+    sql = sql_path.read_text(
+        encoding="utf-8"
+    )
+
+    con.execute(sql)
+
+    row_count = con.execute("""
+        SELECT COUNT(*)
+        FROM marts.hourly_mobility
+    """).fetchone()[0]
+
+    print(
+        f"[SUCCESS] Mobility mart rows: {row_count:,}"
+    )
+
+def validate_hourly_mobility(con):
+
+    print("\n")
+    print("=" * 80)
+    print("MOBILITY MART VALIDATION")
+    print("=" * 80)
+
+    # ---------------------------------------------------------------
+    # Basic mart reconciliation
+    # ---------------------------------------------------------------
+
+    result = con.execute("""
+        SELECT
+            COUNT(*) AS mart_rows,
+            COUNT(DISTINCT pickup_hour) AS hours,
+            SUM(trip_count) AS trips
+        FROM marts.hourly_mobility
+    """).fetchone()
+
+    mart_rows = result[0]
+    hours = result[1]
+    trips = result[2]
+
+    expected_trips = con.execute("""
+        SELECT SUM(trip_count)
+        FROM intermediate.hourly_taxi_demand
+    """).fetchone()[0]
+
+    print(f"Mart rows:          {mart_rows:,}")
+    print(f"Distinct hours:     {hours:,}")
+    print(f"Taxi trips:         {trips:,}")
+    print(f"Expected trips:     {expected_trips:,}")
+
+    # ---------------------------------------------------------------
+    # Validate mart grain
+    #
+    # Expected grain:
+    # one row per pickup_hour + pickup_location_id + dropoff_location_id
+    # ---------------------------------------------------------------
+
+    grain_check = con.execute("""
+        SELECT
+            COUNT(*) AS total_rows,
+            COUNT(DISTINCT (
+                pickup_hour,
+                pickup_location_id,
+                dropoff_location_id
+            )) AS unique_grain_rows
+        FROM marts.hourly_mobility
+    """).fetchone()
+
+    total_rows = grain_check[0]
+    unique_grain_rows = grain_check[1]
+
+    print(f"Unique grain rows:  {unique_grain_rows:,}")
+
+    # ---------------------------------------------------------------
+    # Validate zone mapping
+    # ---------------------------------------------------------------
+
+    zone_check = con.execute("""
+        SELECT
+            COUNT(*) FILTER (
+                WHERE pickup_zone IS NULL
+            ) AS missing_pickup_zone,
+
+            COUNT(*) FILTER (
+                WHERE dropoff_zone IS NULL
+            ) AS missing_dropoff_zone
+
+        FROM marts.hourly_mobility
+    """).fetchone()
+
+    missing_pickup_zone = zone_check[0]
+    missing_dropoff_zone = zone_check[1]
+
+    print(f"Missing pickup zones:  {missing_pickup_zone:,}")
+
+    print(f"Missing dropoff zones: {missing_dropoff_zone:,}")
+
+    # ---------------------------------------------------------------
+    # Assertions
+    # ---------------------------------------------------------------
+
+    if trips != expected_trips:
+        raise RuntimeError(
+            "Mobility mart changed taxi trip totals."
+        )
+
+    if hours != 2184:
+        raise RuntimeError(
+            "Mobility mart does not cover all hours."
+        )
+
+    if total_rows != unique_grain_rows:
+        raise RuntimeError(
+            "Mobility mart grain is not unique."
+        )
+
+    if missing_pickup_zone != 0:
+        raise RuntimeError(
+            "Mobility mart contains unmapped pickup zones."
+        )
+
+    if missing_dropoff_zone != 0:
+        raise RuntimeError(
+            "Mobility mart contains unmapped dropoff zones."
+        )
+
+    print(
+        "\n[SUCCESS] Mobility mart preserves "
+        "taxi aggregation grain."
+    )
+
+    print(
+        "[SUCCESS] Mobility mart grain is unique."
+    )
+
+    print(
+        "[SUCCESS] All taxi zones are mapped."
+    )
+
+
 def main():
 
     print("=" * 80)
@@ -477,10 +722,14 @@ def main():
         validate_hourly_sources(con)
         build_hourly_taxi_demand(con)
         validate_hourly_taxi_demand(con)
+        build_hourly_context(con)
+        validate_hourly_context(con)
+        build_hourly_mobility(con)
+        validate_hourly_mobility(con)
 
         print("\n")
         print("=" * 80)
-        print("WAREHOUSE STAGING BUILD COMPLETE")
+        print("WAREHOUSE BUILD COMPLETE")
         print("=" * 80)
         print(f"Database: {DB_PATH}")
 
