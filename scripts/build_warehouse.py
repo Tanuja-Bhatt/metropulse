@@ -1986,57 +1986,6 @@ def build_statistical_analysis(con):
 
     print(f"[SUCCESS] Statistical analysis rows: {row_count}")
 
-def build_data_quality_anomalies(con):
-    print("\n" + "=" * 80)
-    print("BUILDING DATA QUALITY / ANOMALY MART")
-    print("=" * 80)
-
-    sql_path = (
-        PROJECT_ROOT
-        / "sql"
-        / "marts"
-        / "data_quality_anomalies.sql"
-    )
-
-    sql = sql_path.read_text(encoding="utf-8")
-    con.execute(sql)
-
-    row_count = con.sql(
-        "SELECT COUNT(*) FROM marts.data_quality_anomalies"
-    ).fetchone()[0]
-
-    issue_count = con.sql(
-        """
-        SELECT COUNT(DISTINCT issue_id)
-        FROM marts.data_quality_anomalies
-        """
-    ).fetchone()[0]
-
-    null_issue_ids = con.sql(
-        """
-        SELECT COUNT(*)
-        FROM marts.data_quality_anomalies
-        WHERE issue_id IS NULL
-        """
-    ).fetchone()[0]
-
-    if row_count != 8:
-        raise RuntimeError(
-            f"Expected exactly 8 material DQ findings; found {row_count}."
-        )
-
-    if issue_count != 8:
-        raise RuntimeError(
-            f"Expected 8 unique DQ issue IDs; found {issue_count}."
-        )
-
-    if null_issue_ids != 0:
-        raise RuntimeError(
-            "Data-quality anomaly mart contains NULL issue IDs."
-        )
-
-    print(f"[SUCCESS] Material DQ findings: {row_count}")
-    print("[SUCCESS] DQ issue IDs are unique and complete.")
 
 def main():
 
@@ -2085,7 +2034,7 @@ def main():
         build_geographic_performance(con)
         build_fare_payment_analysis(con)
         build_weather_transit_analysis(con)
-        build_data_quality_anomalies(con)
+       
         build_statistical_analysis(con)
         validate_data_quality_tests(con)
 

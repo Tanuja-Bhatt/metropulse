@@ -3,7 +3,7 @@
   "dataset": "Yellow Taxi Trip Records",
   "source_url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-05.parquet",
   "period": "2024-05",
-  "extraction_timestamp_utc": "2026-08-17T18:20:19.309758+00:00",
+  "extraction_timestamp_utc": "2026-08-20T15:57:43.357966+00:00",
   "file_name": "yellow_tripdata_2024-05.parquet",
   "file_size_bytes": 62553128,
   "sha256": "1974230be2b5a3ea92e47b5eb77f32dbf1de896d81ad8df4ab6faba52749ad23",

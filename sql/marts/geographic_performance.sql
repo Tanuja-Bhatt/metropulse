@@ -95,7 +95,7 @@ SELECT
         AND r.total_zone_activity > 0
         THEN TRUE
         ELSE FALSE
-    END AS underserved_indicator,
+    END AS below_median_activity_indicator,
 
     CASE
         WHEN r.total_zone_activity < m.median_zone_activity
