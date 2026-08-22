@@ -1,5 +1,6 @@
 data/raw/
 data/*.duckdb
+!data/metropulse_deploy.duckdb
 .venv/
 __pycache__/
 .env

@@ -4,8 +4,8 @@ import duckdb
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATABASE_PATH = PROJECT_ROOT / "data" / "metropulse.duckdb"
-
+# DATABASE_PATH = PROJECT_ROOT / "data" / "metropulse.duckdb"
+DATABASE_PATH = PROJECT_ROOT / "data" / "metropulse_deploy.duckdb"
 
 def get_connection() -> duckdb.DuckDBPyConnection:
     """
