@@ -1,0 +1,8 @@
+check_name,expected,actual,status
+staging_to_clean_rows,10777291,10777291,PASS
+clean_to_trip_metrics_rows,10777291,10777291,PASS
+trip_metrics_to_total_trips,10777291,10777291,PASS
+payment_mart_to_total_trips,10777291,10777291,PASS
+temporal_mart_to_total_trips,10777291,10777291,PASS
+geographic_pickups_to_total_trips,10777291,10777291,PASS
+warehouse_quality_status,PASS,PASS,PASS

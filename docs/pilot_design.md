@@ -38,134 +38,180 @@ Monitor:
 
 The intervention should not be considered successful if airport productivity improves while materially degrading citywide service.
 
+### Pilot Duration
+
+**4 weeks.**
+
+The pilot should run for four consecutive weeks covering the selected airport-focused operating window. Treatment and control assignments should remain fixed for the pilot unless a pre-specified operational safety rule requires intervention.
+
 ### MDE / Sample-Size Reasoning
 
-The historical dataset is observational and does not contain a randomized treatment/control experiment. Therefore a definitive experimental sample size cannot be claimed from historical averages alone.
+The historical dataset is observational and does not contain randomized treatment/control assignment or vehicle-hour supply. Therefore a definitive experimental sample size cannot be estimated directly from historical trip counts.
 
-Before launch, estimate the baseline mean and standard deviation of the primary metric at the proposed experimental-unit level.
+Before launch:
 
-For a two-sided comparison with equal-sized treatment and control groups, the approximate per-group sample size is:
+1. Estimate the baseline mean and standard deviation of completed airport trips per available vehicle-hour at the actual experimental-unit level.
+2. Select the minimum detectable effect (MDE) as the smallest productivity improvement that would justify the incremental operating cost.
+3. Calculate the required sample size for a two-sided comparison with equal-sized treatment and control groups:
 
 ```text
 n ≈ 2 × (z_(1-α/2) + z_(1-β))² × σ² / δ²
+```
 
 where:
 
-α = significance level
-1-β = target statistical power
-σ = baseline standard deviation of the primary metric
-δ = minimum detectable effect
+- α = 0.05 significance level
+- 1-β = 0.80 statistical power
+- σ = baseline standard deviation of the primary metric
+- δ = pre-specified minimum detectable effect
 
-A practical planning target is:
+The required number of experimental units should then be inflated for expected attrition, non-compliance, or unusable observations.
 
-α = 0.05
-power = 0.80
+The final sample-size calculation must be completed before treatment assignment using the actual pilot-unit baseline variance.
 
-The business should select the MDE based on the minimum productivity improvement that would justify the incremental operating cost.
+If the required sample cannot be achieved within the four-week pilot, the experiment should be redesigned rather than treated as adequately powered.
 
-The final sample size must be recalculated from the actual pilot-unit baseline variance before launch.
+### Stopping Rule
 
-Stopping Rule
+The pilot runs for the full **4-week period** unless a pre-defined safety, service, or operational failure requires early termination.
 
-Do not repeatedly stop and restart the experiment based on interim significance.
+Do not repeatedly stop and restart the experiment based on interim statistical significance.
 
-Pre-specify:
+Before launch, pre-specify:
 
-pilot duration
-minimum number of experimental units
-primary metric
-significance threshold
-guardrail thresholds
+- 4-week pilot duration
+- minimum number of experimental units
+- primary metric
+- MDE
+- significance threshold
+- guardrail thresholds
 
 Early termination is allowed only for:
 
-a pre-defined safety/service failure,
-a severe operational issue,
-or a pre-defined overwhelming-effect boundary established before launch.
-Decision Rule
+- a pre-defined safety/service failure
+- a severe operational issue
+- a pre-defined overwhelming-effect boundary established before launch
+
+### Decision Rule
 
 Proceed to scale if:
 
-the treatment effect on completed airport trips per available vehicle-hour is positive and statistically credible;
-the estimated effect meets or exceeds the pre-specified MDE;
-no material guardrail is breached.
+- the treatment effect on completed airport trips per available vehicle-hour is positive and statistically credible
+- the estimated effect meets or exceeds the pre-specified MDE
+- no material guardrail is breached
 
 If the primary metric fails to meet the MDE or a material guardrail deteriorates, do not scale the intervention without further investigation.
 
-Initiative 2 — Citywide Evening Peak Capacity Planning
-Objective
+---
+
+## Initiative 2 — Citywide Evening Peak Capacity Planning
+
+### Objective
 
 Test whether planned incremental capacity during the citywide evening peak improves completed-trip productivity.
 
-Experimental Unit
+### Experimental Unit
 
 The preferred unit is a comparable operating zone-shift or vehicle-shift.
 
 Randomization should occur at the operational-unit level where feasible.
 
-Treatment
+### Treatment
 
 Treatment units receive incremental capacity during the selected evening peak window.
 
-Control
+### Control
 
 Control units remain under the existing capacity policy.
 
-Primary Metric
+### Primary Metric
 
-Completed trips per available vehicle-hour.
+**Completed trips per available vehicle-hour.**
 
 Again, this avoids interpreting higher raw trip counts as improved productivity when additional supply itself may explain the increase.
 
-Guardrails
+### Guardrails
 
 Monitor:
 
-revenue per vehicle-hour
-trip completion
-service quality / wait-time proxy
-post-peak demand performance
-utilization
-non-peak service coverage
-MDE / Sample-Size Reasoning
+- revenue per vehicle-hour
+- trip completion
+- service quality / wait-time proxy
+- post-peak demand performance
+- utilization
+- non-peak service coverage
 
-Use the same two-arm planning framework:
+### Pilot Duration
 
+**4 weeks.**
+
+The pilot should run for four consecutive weeks covering the selected citywide evening peak window. Treatment and control assignments should remain fixed for the pilot unless a pre-specified operational safety rule requires intervention.
+
+### MDE / Sample-Size Reasoning
+
+The historical dataset is observational and does not contain randomized capacity assignment or vehicle-hour supply. Therefore historical trip counts cannot be used to claim a definitive experimental sample size.
+
+Before launch:
+
+1. Estimate the baseline mean and standard deviation of completed trips per available vehicle-hour at the actual experimental-unit level.
+2. Define the MDE as the smallest increase in completed trips per available vehicle-hour that would economically justify the incremental capacity.
+3. Calculate the required sample size for equal-sized treatment and control groups using:
+
+```text
 n ≈ 2 × (z_(1-α/2) + z_(1-β))² × σ² / δ²
+```
 
 with:
 
-α = 0.05
-power = 0.80
+- α = 0.05 significance level
+- 1-β = 0.80 statistical power
+- σ = baseline standard deviation of the primary metric
+- δ = pre-specified minimum detectable effect
 
-The MDE should be defined as the smallest increase in completed trips per available vehicle-hour that would economically justify the incremental capacity.
+The required number of experimental units should then be inflated for expected attrition, non-compliance, or unusable observations.
 
-Because the current historical dataset is observational, the final MDE and sample-size calculation should be performed using the actual experimental-unit baseline variance immediately before the pilot.
+The final sample-size calculation must be completed before treatment assignment using the actual experimental-unit baseline variance.
 
-Stopping Rule
+If the required sample cannot be achieved within the four-week pilot, the intervention should be redesigned rather than treated as adequately powered.
 
-Pre-specify the experiment duration and minimum sample size.
+### Stopping Rule
+
+The pilot runs for the full **4-week period** unless a pre-defined safety, service, or operational failure requires early termination.
 
 Do not terminate early merely because an interim result becomes statistically significant.
 
+Before launch, pre-specify:
+
+- 4-week pilot duration
+- minimum sample size
+- primary metric
+- MDE
+- significance threshold
+- guardrail thresholds
+
 Terminate early only for:
 
-predefined operational/safety failures,
-predefined severe guardrail breaches,
-or a pre-specified overwhelming-effect boundary.
-Decision Rule
+- predefined operational/safety failures
+- predefined severe guardrail breaches
+- a pre-specified overwhelming-effect boundary
+
+### Decision Rule
 
 Scale the intervention only if:
 
-the treatment improves completed trips per available vehicle-hour;
-the effect meets the pre-specified MDE;
-the confidence interval supports a practically meaningful improvement;
-guardrails remain within their pre-defined limits.
+- the treatment improves completed trips per available vehicle-hour
+- the effect meets the pre-specified MDE
+- the confidence interval supports a practically meaningful improvement
+- guardrails remain within their pre-defined limits
 
 If these conditions are not met, retain the existing capacity policy or redesign the intervention.
 
-Important Limitation
+---
+
+## Important Limitation
 
 MetroPulse historical data does not directly observe randomized capacity assignment, vehicle supply, unmet demand, driver acceptance, or passenger wait time.
 
 Therefore the historical analysis supports where and when to run an experiment, but does not by itself establish that incremental capacity will cause the proposed productivity improvement.
+
+The historical analysis is therefore used to identify and prioritize the operating windows for prospective experimentation rather than to claim causal uplift from additional capacity.
