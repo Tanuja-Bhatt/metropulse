@@ -1,0 +1,3 @@
+population,total_trips,total_revenue,avg_amount_per_trip,trip_retention_pct,revenue_retention_pct
+All trips,10777291,301136138.45012844,27.941728440860363,100.0,100.0
+Quality-valid trips,9188301,267025632.98018554,29.061480787382298,85.25612790820996,88.6727293358077

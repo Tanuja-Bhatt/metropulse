@@ -1,0 +1,5 @@
+analysis,version,median_execution_ms,repetitions,improvement_pct
+Payment analysis,Before,680.0,5,99.77941176470588
+Payment analysis,After,1.5,5,99.77941176470588
+Geographic analysis,Before,35.4,5,97.74011299435028
+Geographic analysis,After,0.8,5,97.74011299435028

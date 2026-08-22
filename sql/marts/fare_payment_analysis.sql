@@ -10,13 +10,56 @@
 
 CREATE OR REPLACE TABLE marts.fare_payment_analysis AS
 
-WITH trip AS (
+WITH base AS (
 
     SELECT
 
-        payment_type,
+        CASE
+            WHEN payment_type IN (1, 2, 3, 4)
+                THEN payment_type
+            ELSE 5
+        END AS canonical_payment_type,
 
-        payment_type_label,
+        CASE
+            WHEN payment_type = 1
+                THEN 'Credit Card'
+
+            WHEN payment_type = 2
+                THEN 'Cash'
+
+            WHEN payment_type = 3
+                THEN 'No Charge'
+
+            WHEN payment_type = 4
+                THEN 'Dispute'
+
+            ELSE 'Unknown'
+        END AS canonical_payment_type_label,
+
+        passenger_count,
+        fare_amount,
+        total_amount,
+        trip_distance,
+        trip_duration_minutes,
+        trip_speed_mph,
+        is_distance_valid,
+        is_duration_valid,
+        is_tipped,
+        tip_percentage,
+        tip_amount,
+        is_airport_trip
+
+    FROM intermediate.trip_metrics
+
+),
+
+trip AS (
+
+    SELECT
+
+        canonical_payment_type AS payment_type,
+
+        canonical_payment_type_label AS payment_type_label,
 
         COUNT(*) AS trips,
 
@@ -88,11 +131,11 @@ WITH trip AS (
             END
         ) AS airport_trips
 
-    FROM intermediate.trip_metrics
+    FROM base
 
     GROUP BY
-        payment_type,
-        payment_type_label
+        canonical_payment_type,
+        canonical_payment_type_label
 
 ),
 

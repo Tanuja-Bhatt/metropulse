@@ -133,9 +133,10 @@ peak AS (
 
     SELECT
         hour_of_day AS peak_hour,
-        taxi_trip_count AS peak_hour_trips
+        AVG(taxi_trip_count) AS peak_hour_trips
     FROM hourly
-    ORDER BY taxi_trip_count DESC
+    GROUP BY hour_of_day
+    ORDER BY AVG(taxi_trip_count) DESC
     LIMIT 1
 
 ),
@@ -216,7 +217,7 @@ SELECT
     peak.peak_hour_trips,
 
     100.0 * peak.peak_hour_trips
-    / NULLIF(trip.total_trips, 0)
+    / NULLIF(daily_stats.avg_daily_trips, 0)
     AS peak_hour_share_pct,
 
     hour_stats.avg_hourly_trips,
